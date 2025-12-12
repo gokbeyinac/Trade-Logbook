@@ -15,6 +15,8 @@ export default function TradesPage() {
     direction: "all",
     dateFrom: undefined,
     dateTo: undefined,
+    strategy: "",
+    tag: "",
   });
 
   const { data: trades = [], isLoading } = useQuery<Trade[]>({
@@ -27,6 +29,12 @@ export default function TradesPage() {
         return false;
       }
       if (filters.direction !== "all" && trade.direction !== filters.direction) {
+        return false;
+      }
+      if (filters.strategy && !(trade.strategy ?? "").toLowerCase().includes(filters.strategy.toLowerCase())) {
+        return false;
+      }
+      if (filters.tag && !(trade.tags ?? []).some(t => t.includes(filters.tag))) {
         return false;
       }
       if (filters.dateFrom) {

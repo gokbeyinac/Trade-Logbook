@@ -24,6 +24,7 @@ export default function NewTradePage() {
         exitTime: data.isClosed && data.exitTime ? new Date(data.exitTime).toISOString() : null,
         fees: data.fees ? parseFloat(data.fees) : 0,
         strategy: data.strategy || "",
+        tags: data.tags || [],
         notes: data.notes || "",
         source: "manual",
       };

@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ArrowUpRight, ArrowDownRight, X, Clock, DollarSign, Hash, FileText, Zap } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, X, Clock, DollarSign, Hash, FileText, Zap, Tag } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -226,7 +226,7 @@ export function TradeDetailDialog({
             )}
           </div>
 
-          {(trade.strategy || trade.notes) && (
+          {(trade.strategy || trade.notes || (trade.tags && trade.tags.length > 0)) && (
             <>
               <Separator />
               <div className="space-y-3">
@@ -237,6 +237,21 @@ export function TradeDetailDialog({
                       <span>Strategy</span>
                     </div>
                     <p className="mt-1">{trade.strategy}</p>
+                  </div>
+                )}
+                {trade.tags && trade.tags.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Tag className="h-4 w-4" />
+                      <span>Tags</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {trade.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" data-testid={`badge-tag-${tag}`}>
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {trade.notes && (

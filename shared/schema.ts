@@ -21,6 +21,7 @@ export const trades = pgTable("trades", {
   fees: real("fees").notNull().default(0),
   notes: text("notes").notNull().default(""),
   strategy: text("strategy").notNull().default(""),
+  tags: text("tags").array().notNull().default([]),
   source: text("source").notNull().default("manual").$type<"manual" | "tradingview">(),
 });
 
@@ -33,6 +34,7 @@ export const insertTradeSchema = createInsertSchema(trades).omit({ id: true }).e
   entryPrice: z.number().positive("Entry price must be positive"),
   exitPrice: z.number().positive("Exit price must be positive").nullable(),
   quantity: z.number().positive("Quantity must be positive"),
+  tags: z.array(z.string()).default([]),
   source: z.enum(["manual", "tradingview"]).default("manual"),
 });
 

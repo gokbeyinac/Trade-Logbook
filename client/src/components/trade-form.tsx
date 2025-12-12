@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Loader2, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -35,6 +37,7 @@ const tradeFormSchema = z.object({
   entryTime: z.string().min(1, "Entry time is required"),
   exitTime: z.string().optional(),
   strategy: z.string().optional(),
+  tags: z.array(z.string()).default([]),
   notes: z.string().optional(),
   isClosed: z.boolean().default(false),
 });
@@ -47,6 +50,8 @@ interface TradeFormProps {
 }
 
 export function TradeForm({ onSubmit, isLoading }: TradeFormProps) {
+  const [tagInput, setTagInput] = useState("");
+  
   const form = useForm<TradeFormValues>({
     resolver: zodResolver(tradeFormSchema),
     defaultValues: {
@@ -59,6 +64,7 @@ export function TradeForm({ onSubmit, isLoading }: TradeFormProps) {
       entryTime: new Date().toISOString().slice(0, 16),
       exitTime: "",
       strategy: "",
+      tags: [],
       notes: "",
       isClosed: false,
     },
@@ -316,6 +322,79 @@ export function TradeForm({ onSubmit, isLoading }: TradeFormProps) {
                       {...field}
                       data-testid="input-trade-strategy"
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tags (optional)</FormLabel>
+                  <FormControl>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Add a tag (press Enter)"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && tagInput.trim()) {
+                              e.preventDefault();
+                              const newTag = tagInput.trim().toLowerCase();
+                              if (!field.value.includes(newTag)) {
+                                field.onChange([...field.value, newTag]);
+                              }
+                              setTagInput("");
+                            }
+                          }}
+                          data-testid="input-trade-tags"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            if (tagInput.trim()) {
+                              const newTag = tagInput.trim().toLowerCase();
+                              if (!field.value.includes(newTag)) {
+                                field.onChange([...field.value, newTag]);
+                              }
+                              setTagInput("");
+                            }
+                          }}
+                          data-testid="button-add-tag"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {field.value.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {field.value.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="gap-1"
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(field.value.filter((t) => t !== tag));
+                                }}
+                                className="ml-1 rounded-sm hover:bg-muted"
+                                data-testid={`button-remove-tag-${tag}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

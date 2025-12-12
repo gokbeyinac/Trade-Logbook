@@ -18,6 +18,8 @@ export interface TradeFilters {
   direction: "all" | "long" | "short";
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
+  strategy: string;
+  tag: string;
 }
 
 interface TradeFiltersProps {
@@ -30,7 +32,9 @@ export function TradeFiltersBar({ filters, onFiltersChange }: TradeFiltersProps)
     filters.symbol ||
     filters.direction !== "all" ||
     filters.dateFrom ||
-    filters.dateTo;
+    filters.dateTo ||
+    filters.strategy ||
+    filters.tag;
 
   const clearFilters = () => {
     onFiltersChange({
@@ -38,6 +42,8 @@ export function TradeFiltersBar({ filters, onFiltersChange }: TradeFiltersProps)
       direction: "all",
       dateFrom: undefined,
       dateTo: undefined,
+      strategy: "",
+      tag: "",
     });
   };
 
@@ -74,6 +80,26 @@ export function TradeFiltersBar({ filters, onFiltersChange }: TradeFiltersProps)
           <SelectItem value="short">Short Only</SelectItem>
         </SelectContent>
       </Select>
+
+      <Input
+        placeholder="Strategy..."
+        value={filters.strategy}
+        onChange={(e) =>
+          onFiltersChange({ ...filters, strategy: e.target.value })
+        }
+        className="w-[130px]"
+        data-testid="input-filter-strategy"
+      />
+
+      <Input
+        placeholder="Tag..."
+        value={filters.tag}
+        onChange={(e) =>
+          onFiltersChange({ ...filters, tag: e.target.value.toLowerCase() })
+        }
+        className="w-[100px]"
+        data-testid="input-filter-tag"
+      />
 
       <Popover>
         <PopoverTrigger asChild>
