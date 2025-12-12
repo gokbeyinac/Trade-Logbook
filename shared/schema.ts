@@ -1,6 +1,7 @@
-import { pgTable, text, integer, real, timestamp, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, serial, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 
 export const tradeDirectionEnum = z.enum(["long", "short"]);
 export type TradeDirection = z.infer<typeof tradeDirectionEnum>;
@@ -44,27 +45,6 @@ export const updateTradeSchema = insertTradeSchema.partial().strict();
 
 export type UpdateTrade = z.infer<typeof updateTradeSchema>;
 
-export const tradingViewWebhookSchema = z.object({
-  symbol: z.string(),
-  direction: tradeDirectionEnum,
-  action: z.enum(["entry", "exit"]),
-  price: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === 'string' ? parseFloat(val) : val;
-    if (isNaN(num) || num <= 0) throw new Error('Price must be a positive number');
-    return num;
-  }),
-  quantity: z.union([z.number(), z.string()]).optional().transform((val) => {
-    if (val === undefined) return 1;
-    const num = typeof val === 'string' ? parseFloat(val) : val;
-    if (isNaN(num) || num <= 0) return 1;
-    return num;
-  }),
-  strategy: z.string().optional(),
-  time: z.string().optional(),
-});
-
-export type TradingViewWebhook = z.infer<typeof tradingViewWebhookSchema>;
-
 export interface TradeStatistics {
   totalTrades: number;
   winningTrades: number;
@@ -78,14 +58,27 @@ export interface TradeStatistics {
   largestLoss: number;
 }
 
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for Replit Auth
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-
-export type InsertUser = z.infer<typeof insertUserSchema>;

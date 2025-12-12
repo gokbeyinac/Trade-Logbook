@@ -1,13 +1,26 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTradeSchema, tradingViewWebhookSchema, updateTradeSchema } from "@shared/schema";
+import { insertTradeSchema, updateTradeSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  await setupAuth(app);
+
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
   // Get all trades
   app.get("/api/trades", async (req, res) => {
@@ -95,65 +108,6 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete trade" });
-    }
-  });
-
-  // TradingView webhook endpoint
-  app.post("/api/webhook/tradingview", async (req, res) => {
-    console.log("[Webhook] Received request from:", req.ip || req.headers['x-forwarded-for'] || 'unknown');
-    console.log("[Webhook] Raw body:", JSON.stringify(req.body));
-    
-    try {
-      const data = tradingViewWebhookSchema.parse(req.body);
-      const timestamp = data.time || new Date().toISOString();
-
-      if (data.action === "entry") {
-        // Create new open trade
-        const trade = await storage.createTrade({
-          symbol: data.symbol.toUpperCase(),
-          direction: data.direction,
-          status: "open",
-          entryPrice: data.price,
-          exitPrice: null,
-          quantity: data.quantity || 1,
-          entryTime: timestamp,
-          exitTime: null,
-          fees: 0,
-          notes: "",
-          strategy: data.strategy || "",
-          tags: [],
-          source: "tradingview",
-        });
-        res.status(201).json({ success: true, trade });
-      } else if (data.action === "exit") {
-        // Find open trade and close it
-        const openTrade = await storage.getOpenTradeBySymbolAndDirection(
-          data.symbol.toUpperCase(),
-          data.direction
-        );
-
-        if (!openTrade) {
-          return res.status(404).json({ 
-            error: "No open trade found for this symbol and direction" 
-          });
-        }
-
-        const updatedTrade = await storage.updateTrade(openTrade.id, {
-          status: "closed",
-          exitPrice: data.price,
-          exitTime: timestamp,
-        });
-
-        res.json({ success: true, trade: updatedTrade });
-      } else {
-        res.status(400).json({ error: "Invalid action" });
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid webhook data", details: error.errors });
-      }
-      console.error("Webhook error:", error);
-      res.status(500).json({ error: "Failed to process webhook" });
     }
   });
 

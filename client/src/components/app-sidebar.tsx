@@ -1,4 +1,6 @@
-import { LayoutDashboard, List, PlusCircle, Webhook, TrendingUp, BarChart3 } from "lucide-react";
+import { LayoutDashboard, List, PlusCircle, TrendingUp, BarChart3, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -36,16 +38,10 @@ const mainNavItems = [
   },
 ];
 
-const integrationItems = [
-  {
-    title: "TradingView Setup",
-    url: "/webhook",
-    icon: Webhook,
-  },
-];
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   return (
     <Sidebar>
@@ -83,33 +79,39 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-            Integration
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {integrationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url}
-                  >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <p className="text-xs text-muted-foreground">
-          Track. Analyze. Improve.
-        </p>
+      <SidebarFooter className="p-4 space-y-3">
+        {user && (
+          <div className="flex items-center gap-2">
+            {user.profileImageUrl && (
+              <img
+                src={user.profileImageUrl}
+                alt="Profile"
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            )}
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium truncate" data-testid="text-user-name">
+                {user.firstName || user.email || "User"}
+              </span>
+              {user.email && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start"
+          onClick={() => window.location.href = "/api/logout"}
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
