@@ -48,8 +48,17 @@ export const tradingViewWebhookSchema = z.object({
   symbol: z.string(),
   direction: tradeDirectionEnum,
   action: z.enum(["entry", "exit"]),
-  price: z.number().positive(),
-  quantity: z.number().positive().optional(),
+  price: z.union([z.number(), z.string()]).transform((val) => {
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num) || num <= 0) throw new Error('Price must be a positive number');
+    return num;
+  }),
+  quantity: z.union([z.number(), z.string()]).optional().transform((val) => {
+    if (val === undefined) return 1;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num) || num <= 0) return 1;
+    return num;
+  }),
   strategy: z.string().optional(),
   time: z.string().optional(),
 });
