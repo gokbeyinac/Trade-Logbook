@@ -100,6 +100,9 @@ export async function registerRoutes(
 
   // TradingView webhook endpoint
   app.post("/api/webhook/tradingview", async (req, res) => {
+    console.log("[Webhook] Received request from:", req.ip || req.headers['x-forwarded-for'] || 'unknown');
+    console.log("[Webhook] Raw body:", JSON.stringify(req.body));
+    
     try {
       const data = tradingViewWebhookSchema.parse(req.body);
       const timestamp = data.time || new Date().toISOString();
@@ -118,6 +121,7 @@ export async function registerRoutes(
           fees: 0,
           notes: "",
           strategy: data.strategy || "",
+          tags: [],
           source: "tradingview",
         });
         res.status(201).json({ success: true, trade });
