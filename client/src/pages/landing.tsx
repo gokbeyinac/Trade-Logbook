@@ -2,8 +2,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, BarChart3, Target, LineChart } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
+import { signInWithGoogle } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
+  const { toast } = useToast();
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Could not sign in with Google",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
@@ -21,7 +37,7 @@ export default function Landing() {
 
           <Button
             size="lg"
-            onClick={() => window.location.href = "/api/login"}
+            onClick={handleGoogleSignIn}
             data-testid="button-login"
             className="gap-2"
           >

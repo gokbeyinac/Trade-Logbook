@@ -11,6 +11,7 @@ export type TradeStatus = z.infer<typeof tradeStatusEnum>;
 
 export const trades = pgTable("trades", {
   id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
   symbol: text("symbol").notNull(),
   direction: text("direction").notNull().$type<"long" | "short">(),
   status: text("status").notNull().$type<"open" | "closed">(),
@@ -29,6 +30,7 @@ export const trades = pgTable("trades", {
 export type Trade = typeof trades.$inferSelect;
 
 export const insertTradeSchema = createInsertSchema(trades).omit({ id: true }).extend({
+  userId: z.string().min(1),
   symbol: z.string().min(1, "Symbol is required").toUpperCase(),
   direction: tradeDirectionEnum,
   status: tradeStatusEnum,

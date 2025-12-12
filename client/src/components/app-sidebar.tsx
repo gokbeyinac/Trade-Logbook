@@ -1,6 +1,7 @@
 import { LayoutDashboard, List, PlusCircle, TrendingUp, BarChart3, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { logOut } from "@/lib/firebase";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -106,7 +107,7 @@ export function AppSidebar() {
           variant="ghost"
           size="sm"
           className="w-full justify-start"
-          onClick={() => window.location.href = "/api/logout"}
+          onClick={() => logOut()}
           data-testid="button-logout"
         >
           <LogOut className="h-4 w-4 mr-2" />

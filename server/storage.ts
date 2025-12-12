@@ -7,12 +7,14 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   getAllTrades(): Promise<Trade[]>;
+  getTradesByUser(userId: string): Promise<Trade[]>;
   getTrade(id: number): Promise<Trade | undefined>;
   createTrade(trade: InsertTrade): Promise<Trade>;
   updateTrade(id: number, updates: UpdateTrade): Promise<Trade | undefined>;
   deleteTrade(id: number): Promise<boolean>;
   getOpenTradeBySymbolAndDirection(symbol: string, direction: "long" | "short"): Promise<Trade | undefined>;
   getTradeStatistics(): Promise<TradeStatistics>;
+  getTradeStatisticsByUser(userId: string): Promise<TradeStatistics>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -38,6 +40,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAllTrades(): Promise<Trade[]> {
     return await db.select().from(trades).orderBy(desc(trades.entryTime));
+  }
+
+  async getTradesByUser(userId: string): Promise<Trade[]> {
+    return await db.select().from(trades).where(eq(trades.userId, userId)).orderBy(desc(trades.entryTime));
   }
 
   async getTrade(id: number): Promise<Trade | undefined> {
@@ -80,6 +86,19 @@ export class DatabaseStorage implements IStorage {
       .from(trades)
       .where(eq(trades.status, "closed"));
 
+    return this.calculateStats(allTrades);
+  }
+
+  async getTradeStatisticsByUser(userId: string): Promise<TradeStatistics> {
+    const allTrades = await db
+      .select()
+      .from(trades)
+      .where(and(eq(trades.userId, userId), eq(trades.status, "closed")));
+
+    return this.calculateStats(allTrades);
+  }
+
+  private calculateStats(allTrades: Trade[]): TradeStatistics {
     if (allTrades.length === 0) {
       return {
         totalTrades: 0,
