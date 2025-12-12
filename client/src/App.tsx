@@ -12,6 +12,7 @@ import Dashboard from "@/pages/dashboard";
 import TradesPage from "@/pages/trades";
 import NewTradePage from "@/pages/new-trade";
 import WebhookSetupPage from "@/pages/webhook-setup";
+import AnalyticsPage from "@/pages/analytics";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/trades" component={TradesPage} />
       <Route path="/trades/new" component={NewTradePage} />
+      <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/webhook" component={WebhookSetupPage} />
       <Route component={NotFound} />
     </Switch>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, PlusCircle, Webhook, TrendingUp } from "lucide-react";
+import { LayoutDashboard, List, PlusCircle, Webhook, TrendingUp, BarChart3 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -28,6 +28,11 @@ const mainNavItems = [
     title: "Log Trade",
     url: "/trades/new",
     icon: PlusCircle,
+  },
+  {
+    title: "Analytics",
+    url: "/analytics",
+    icon: BarChart3,
   },
 ];
 
