@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, BarChart3, Target, LineChart } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 export default function Landing() {
   return (
@@ -22,8 +23,10 @@ export default function Landing() {
             size="lg"
             onClick={() => window.location.href = "/api/login"}
             data-testid="button-login"
+            className="gap-2"
           >
-            Get Started
+            <SiGoogle className="h-5 w-5" />
+            Sign in with Google
           </Button>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 w-full max-w-4xl">

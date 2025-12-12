@@ -34,7 +34,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
     },
   });
@@ -42,12 +42,22 @@ export function getSession() {
 
 function updateUserSession(
   user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
+  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
+  existingClaims?: any
 ) {
-  user.claims = tokens.claims();
+  try {
+    user.claims = tokens.claims();
+    user.expires_at = user.claims?.exp;
+  } catch {
+    user.claims = existingClaims;
+    if (tokens.expires_in) {
+      user.expires_at = Math.floor(Date.now() / 1000) + tokens.expires_in;
+    }
+  }
   user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+  if (tokens.refresh_token) {
+    user.refresh_token = tokens.refresh_token;
+  }
 }
 
 async function upsertUser(claims: any) {
@@ -148,8 +158,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   try {
     const config = await getOidcConfig();
+    const existingClaims = user.claims;
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
+    updateUserSession(user, tokenResponse, existingClaims);
     return next();
   } catch (error) {
     res.status(401).json({ message: "Unauthorized" });
