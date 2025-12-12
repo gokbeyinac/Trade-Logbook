@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTradeSchema, tradingViewWebhookSchema } from "@shared/schema";
+import { insertTradeSchema, tradingViewWebhookSchema, updateTradeSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -32,7 +32,11 @@ export async function registerRoutes(
   // Get single trade
   app.get("/api/trades/:id", async (req, res) => {
     try {
-      const trade = await storage.getTrade(req.params.id);
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid trade ID" });
+      }
+      const trade = await storage.getTrade(id);
       if (!trade) {
         return res.status(404).json({ error: "Trade not found" });
       }
@@ -59,12 +63,20 @@ export async function registerRoutes(
   // Update trade
   app.patch("/api/trades/:id", async (req, res) => {
     try {
-      const trade = await storage.updateTrade(req.params.id, req.body);
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid trade ID" });
+      }
+      const validatedUpdates = updateTradeSchema.parse(req.body);
+      const trade = await storage.updateTrade(id, validatedUpdates);
       if (!trade) {
         return res.status(404).json({ error: "Trade not found" });
       }
       res.json(trade);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.errors });
+      }
       res.status(500).json({ error: "Failed to update trade" });
     }
   });
@@ -72,7 +84,11 @@ export async function registerRoutes(
   // Delete trade
   app.delete("/api/trades/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteTrade(req.params.id);
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid trade ID" });
+      }
+      const deleted = await storage.deleteTrade(id);
       if (!deleted) {
         return res.status(404).json({ error: "Trade not found" });
       }

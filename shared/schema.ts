@@ -1,3 +1,5 @@
+import { pgTable, text, integer, real, timestamp, serial } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const tradeDirectionEnum = z.enum(["long", "short"]);
@@ -6,29 +8,39 @@ export type TradeDirection = z.infer<typeof tradeDirectionEnum>;
 export const tradeStatusEnum = z.enum(["open", "closed"]);
 export type TradeStatus = z.infer<typeof tradeStatusEnum>;
 
-export const tradeSchema = z.object({
-  id: z.string(),
-  symbol: z.string().min(1, "Symbol is required"),
+export const trades = pgTable("trades", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  direction: text("direction").notNull().$type<"long" | "short">(),
+  status: text("status").notNull().$type<"open" | "closed">(),
+  entryPrice: real("entry_price").notNull(),
+  exitPrice: real("exit_price"),
+  quantity: real("quantity").notNull(),
+  entryTime: text("entry_time").notNull(),
+  exitTime: text("exit_time"),
+  fees: real("fees").notNull().default(0),
+  notes: text("notes").notNull().default(""),
+  strategy: text("strategy").notNull().default(""),
+  source: text("source").notNull().default("manual").$type<"manual" | "tradingview">(),
+});
+
+export type Trade = typeof trades.$inferSelect;
+
+export const insertTradeSchema = createInsertSchema(trades).omit({ id: true }).extend({
+  symbol: z.string().min(1, "Symbol is required").toUpperCase(),
   direction: tradeDirectionEnum,
   status: tradeStatusEnum,
   entryPrice: z.number().positive("Entry price must be positive"),
   exitPrice: z.number().positive("Exit price must be positive").nullable(),
   quantity: z.number().positive("Quantity must be positive"),
-  entryTime: z.string(),
-  exitTime: z.string().nullable(),
-  fees: z.number().min(0).default(0),
-  notes: z.string().default(""),
-  strategy: z.string().default(""),
   source: z.enum(["manual", "tradingview"]).default("manual"),
 });
 
-export type Trade = z.infer<typeof tradeSchema>;
-
-export const insertTradeSchema = tradeSchema.omit({ id: true }).extend({
-  symbol: z.string().min(1, "Symbol is required").toUpperCase(),
-});
-
 export type InsertTrade = z.infer<typeof insertTradeSchema>;
+
+export const updateTradeSchema = insertTradeSchema.partial().strict();
+
+export type UpdateTrade = z.infer<typeof updateTradeSchema>;
 
 export const tradingViewWebhookSchema = z.object({
   symbol: z.string(),
@@ -55,16 +67,14 @@ export interface TradeStatistics {
   largestLoss: number;
 }
 
-export const users = {
-  id: "",
-  username: "",
-  password: "",
-};
-
-export const insertUserSchema = z.object({
-  username: z.string(),
-  password: z.string(),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
 });
 
+export type User = typeof users.$inferSelect;
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = { id: string; username: string; password: string };
