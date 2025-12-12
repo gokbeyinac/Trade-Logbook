@@ -7,7 +7,11 @@ TradeLog is a professional trading journal application designed for traders to t
 Key features:
 - Manual trade entry with support for long/short positions
 - Dashboard with performance metrics (win rate, total P&L, trade statistics)
-- Trade filtering and search capabilities
+- Trade filtering and search capabilities (by symbol, direction, strategy, tags, date range)
+- Trade tagging for categorization and analysis
+- Strategy categorization for performance tracking
+- CSV export of filtered trades
+- Analytics charts (equity curve, win/loss distribution, performance by symbol)
 - TradingView webhook integration for automated trade logging
 - Dark/light theme support
 - Desktop-optimized design focused on data clarity
@@ -23,7 +27,7 @@ Preferred communication style: Simple, everyday language.
 **Framework**: React with TypeScript, bundled using Vite
 
 **Routing**: Wouter (lightweight React router)
-- Routes: Dashboard (`/`), All Trades (`/trades`), Log Trade (`/trades/new`), Webhook Setup (`/webhook`)
+- Routes: Dashboard (`/`), All Trades (`/trades`), Log Trade (`/trades/new`), Analytics (`/analytics`), Webhook Setup (`/webhook`)
 
 **State Management**: TanStack React Query for server state management
 - Handles data fetching, caching, and synchronization with the backend
@@ -51,8 +55,8 @@ Preferred communication style: Simple, everyday language.
 - `POST /api/webhook/tradingview` - TradingView webhook endpoint
 
 **Storage Layer**: Abstracted storage interface (`IStorage`) in `server/storage.ts`
-- Currently uses in-memory storage (`MemStorage`)
-- Designed for easy swap to database implementation
+- Uses PostgreSQL via DatabaseStorage class
+- Full CRUD operations for trades and users
 
 **Build Process**: Custom build script using esbuild for server and Vite for client
 - Server bundles common dependencies for faster cold starts
@@ -71,8 +75,9 @@ Preferred communication style: Simple, everyday language.
 - Migrations output to `./migrations`
 - Schema location: `./shared/schema.ts`
 
-**Current State**: In-memory storage with database-ready schema
-- PostgreSQL can be provisioned and connected via `DATABASE_URL` environment variable
+**Current State**: PostgreSQL database is active
+- Connected via `DATABASE_URL` environment variable
+- Trades table includes: id, symbol, direction, status, entryPrice, exitPrice, quantity, entryTime, exitTime, fees, notes, strategy, tags (array), source
 
 ### Authentication
 
