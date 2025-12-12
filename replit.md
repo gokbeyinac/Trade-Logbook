@@ -81,7 +81,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Authentication
 
-Currently not implemented. The storage interface includes user-related methods (`getUser`, `getUserByUsername`, `createUser`) suggesting planned authentication support.
+Implemented using Replit Auth (OpenID Connect):
+- `server/replitAuth.ts` - Auth setup with passport, session storage in PostgreSQL
+- Routes: `/api/login`, `/api/logout`, `/api/callback`, `/api/auth/user`
+- All trade API routes protected with `isAuthenticated` middleware
+- Frontend uses `useAuth` hook to check authentication state
+- Landing page shown for unauthenticated users
 
 ## External Dependencies
 

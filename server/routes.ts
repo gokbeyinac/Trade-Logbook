@@ -22,8 +22,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get all trades
-  app.get("/api/trades", async (req, res) => {
+  // Get all trades (protected)
+  app.get("/api/trades", isAuthenticated, async (req, res) => {
     try {
       const trades = await storage.getAllTrades();
       res.json(trades);
@@ -32,8 +32,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get trade statistics
-  app.get("/api/trades/stats", async (req, res) => {
+  // Get trade statistics (protected)
+  app.get("/api/trades/stats", isAuthenticated, async (req, res) => {
     try {
       const stats = await storage.getTradeStatistics();
       res.json(stats);
@@ -42,8 +42,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get single trade
-  app.get("/api/trades/:id", async (req, res) => {
+  // Get single trade (protected)
+  app.get("/api/trades/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -59,8 +59,8 @@ export async function registerRoutes(
     }
   });
 
-  // Create new trade
-  app.post("/api/trades", async (req, res) => {
+  // Create new trade (protected)
+  app.post("/api/trades", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertTradeSchema.parse(req.body);
       const trade = await storage.createTrade(validatedData);
@@ -73,8 +73,8 @@ export async function registerRoutes(
     }
   });
 
-  // Update trade
-  app.patch("/api/trades/:id", async (req, res) => {
+  // Update trade (protected)
+  app.patch("/api/trades/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -94,8 +94,8 @@ export async function registerRoutes(
     }
   });
 
-  // Delete trade
-  app.delete("/api/trades/:id", async (req, res) => {
+  // Delete trade (protected)
+  app.delete("/api/trades/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
