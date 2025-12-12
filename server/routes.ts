@@ -27,6 +27,11 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   const PgStore = pgSession(session);
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction) {
+    app.set("trust proxy", 1);
+  }
 
   app.use(session({
     store: new PgStore({
@@ -38,7 +43,9 @@ export async function registerRoutes(
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      secure: false,
+      secure: isProduction,
+      httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     }
   }));
