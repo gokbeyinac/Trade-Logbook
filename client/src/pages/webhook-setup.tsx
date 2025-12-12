@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Copy, Check, ExternalLink, Webhook, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Copy, Check, ExternalLink, Webhook, AlertCircle, Play, Loader2, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function WebhookSetupPage() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -28,6 +30,57 @@ export default function WebhookSetupPage() {
     action: "exit",
     price: "{{close}}",
   };
+
+  const pineScriptTemplate = `//@version=5
+strategy("TradeLog Webhook Strategy", overlay=true)
+
+// Simple SMA Crossover Example - Replace with your own logic
+fastMA = ta.sma(close, 14)
+slowMA = ta.sma(close, 28)
+
+longCondition = ta.crossover(fastMA, slowMA)
+shortCondition = ta.crossunder(fastMA, slowMA)
+
+if (longCondition)
+    strategy.entry("Long", strategy.long, alert_message='{"symbol":"{{ticker}}","direction":"long","action":"entry","price":{{close}},"strategy":"SMA Crossover"}')
+
+if (shortCondition)
+    strategy.entry("Short", strategy.short, alert_message='{"symbol":"{{ticker}}","direction":"short","action":"entry","price":{{close}},"strategy":"SMA Crossover"}')
+
+strategy.close("Long", when=shortCondition, alert_message='{"symbol":"{{ticker}}","direction":"long","action":"exit","price":{{close}},"strategy":"SMA Crossover"}')
+strategy.close("Short", when=longCondition, alert_message='{"symbol":"{{ticker}}","direction":"short","action":"exit","price":{{close}},"strategy":"SMA Crossover"}')
+
+plot(fastMA, color=color.blue, title="Fast MA")
+plot(slowMA, color=color.red, title="Slow MA")`;
+
+  const testWebhookMutation = useMutation({
+    mutationFn: async () => {
+      const testPayload = {
+        symbol: "TEST",
+        direction: "long",
+        action: "entry",
+        price: 100.00,
+        quantity: 1,
+        strategy: "Webhook Test",
+      };
+      return await apiRequest("POST", "/api/webhook/tradingview", testPayload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trades'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trades/stats'] });
+      toast({
+        title: "Test successful!",
+        description: "A test trade was created. Check your dashboard to see it.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Test failed",
+        description: error.message || "Could not connect to webhook endpoint",
+        variant: "destructive",
+      });
+    },
+  });
 
   const copyToClipboard = async (text: string, label: string) => {
     await navigator.clipboard.writeText(text);
@@ -69,7 +122,7 @@ export default function WebhookSetupPage() {
             Copy this URL and paste it into your TradingView alert webhook settings
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
             <code className="flex-1 rounded-md bg-muted p-3 font-mono text-sm break-all" data-testid="text-webhook-url">
               {webhookUrl}
@@ -86,6 +139,24 @@ export default function WebhookSetupPage() {
                 <Copy className="h-4 w-4" />
               )}
             </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => testWebhookMutation.mutate()}
+              disabled={testWebhookMutation.isPending}
+              data-testid="button-test-webhook"
+            >
+              {testWebhookMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
+              Test Webhook Connection
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Creates a test trade to verify the connection
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -298,6 +369,58 @@ export default function WebhookSetupPage() {
               </div>
             </li>
           </ol>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              5
+            </span>
+            <Code className="h-5 w-5" />
+            Pine Script Template
+          </CardTitle>
+          <CardDescription>
+            Copy this ready-to-use Pine Script strategy with built-in webhook alerts
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-muted">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              This is an example SMA crossover strategy. Replace the entry/exit logic with your own trading rules while keeping the <code className="text-xs">alert_message</code> format.
+            </AlertDescription>
+          </Alert>
+          <div className="relative">
+            <pre className="rounded-md bg-muted p-4 font-mono text-xs overflow-x-auto max-h-96 overflow-y-auto">
+              {pineScriptTemplate}
+            </pre>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute right-2 top-2"
+              onClick={() => copyToClipboard(pineScriptTemplate, "Pine Script")}
+              data-testid="button-copy-pine-script"
+            >
+              {copied === "Pine Script" ? (
+                <Check className="h-4 w-4 text-profit" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">How to use:</p>
+            <ol className="list-decimal list-inside space-y-1 ml-2">
+              <li>Open TradingView and go to Pine Editor</li>
+              <li>Paste this script and click "Add to Chart"</li>
+              <li>Create an alert on the strategy</li>
+              <li>Select "Order fills only" as the condition</li>
+              <li>Enable webhook and paste your TradeLog URL</li>
+              <li>Leave the message field empty (alert_message handles it)</li>
+            </ol>
+          </div>
         </CardContent>
       </Card>
 
