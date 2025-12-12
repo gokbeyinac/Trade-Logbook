@@ -90,6 +90,11 @@ Currently not implemented. The storage interface includes user-related methods (
 **TradingView Integration**: Webhook endpoint for receiving trade signals
 - Accepts entry/exit actions with price, quantity, and strategy data
 - Automatically matches open trades for exit signals
+- Webhook setup page with:
+  - Copyable webhook URL
+  - Test webhook button for connection verification
+  - Ready-to-use Pine Script template with SMA crossover strategy
+  - Step-by-step TradingView setup instructions
 
 ### Database
 
