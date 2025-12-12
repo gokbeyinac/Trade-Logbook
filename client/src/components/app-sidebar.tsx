@@ -1,7 +1,6 @@
 import { LayoutDashboard, List, PlusCircle, TrendingUp, BarChart3, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { logOut } from "@/lib/firebase";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -42,7 +41,15 @@ const mainNavItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <Sidebar>
@@ -84,22 +91,13 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 space-y-3">
         {user && (
           <div className="flex items-center gap-2">
-            {user.profileImageUrl && (
-              <img
-                src={user.profileImageUrl}
-                alt="Profile"
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            )}
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground text-sm font-medium">
+              {user.username.charAt(0).toUpperCase()}
+            </div>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-medium truncate" data-testid="text-user-name">
-                {user.firstName || user.email || "User"}
+                {user.username}
               </span>
-              {user.email && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {user.email}
-                </span>
-              )}
             </div>
           </div>
         )}
@@ -107,7 +105,7 @@ export function AppSidebar() {
           variant="ghost"
           size="sm"
           className="w-full justify-start"
-          onClick={() => logOut()}
+          onClick={handleLogout}
           data-testid="button-logout"
         >
           <LogOut className="h-4 w-4 mr-2" />

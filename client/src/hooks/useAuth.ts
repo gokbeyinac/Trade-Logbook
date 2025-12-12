@@ -1,45 +1,61 @@
-import { useState, useEffect } from "react";
-import { auth, onAuthChange, type User as FirebaseUser } from "@/lib/firebase";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export interface AuthUser {
   id: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  profileImageUrl: string | null;
-}
-
-function mapFirebaseUser(user: FirebaseUser): AuthUser {
-  const displayNameParts = user.displayName?.split(" ") || [];
-  return {
-    id: user.uid,
-    email: user.email,
-    firstName: displayNameParts[0] || null,
-    lastName: displayNameParts.slice(1).join(" ") || null,
-    profileImageUrl: user.photoURL,
-  };
+  username: string;
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
-      if (firebaseUser) {
-        setUser(mapFirebaseUser(firebaseUser));
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
+  const { data: user, isLoading } = useQuery<AuthUser | null>({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+    staleTime: Infinity,
+  });
 
-    return () => unsubscribe();
-  }, []);
+  const loginMutation = useMutation({
+    mutationFn: async (data: { username: string; pin: string }) => {
+      const res = await apiRequest("POST", "/api/auth/login", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async (data: { username: string; pin: string }) => {
+      const res = await apiRequest("POST", "/api/auth/register", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.clear();
+    },
+  });
 
   return {
-    user,
+    user: user || null,
     isLoading,
     isAuthenticated: !!user,
+    login: loginMutation.mutateAsync,
+    register: registerMutation.mutateAsync,
+    logout: logoutMutation.mutateAsync,
+    isLoginPending: loginMutation.isPending,
+    isRegisterPending: registerMutation.isPending,
+    isLogoutPending: logoutMutation.isPending,
+    loginError: loginMutation.error,
+    registerError: registerMutation.error,
   };
 }
