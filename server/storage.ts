@@ -8,11 +8,12 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   getAllTrades(): Promise<Trade[]>;
-  getTradesByUser(userId: string): Promise<Trade[]>;
+  getTradesByUser(userId: string, includeHidden?: boolean): Promise<Trade[]>;
   getTrade(id: number): Promise<Trade | undefined>;
   createTrade(trade: InsertTrade): Promise<Trade>;
   updateTrade(id: number, updates: UpdateTrade): Promise<Trade | undefined>;
   deleteTrade(id: number): Promise<boolean>;
+  toggleTradeHidden(id: number, hidden: boolean): Promise<Trade | undefined>;
   getOpenTradeBySymbolAndDirection(symbol: string, direction: "long" | "short"): Promise<Trade | undefined>;
   getTradeStatistics(): Promise<TradeStatistics>;
   getTradeStatisticsByUser(userId: string): Promise<TradeStatistics>;
@@ -38,8 +39,17 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(trades).orderBy(desc(trades.entryTime));
   }
 
-  async getTradesByUser(userId: string): Promise<Trade[]> {
-    return await db.select().from(trades).where(eq(trades.userId, userId)).orderBy(desc(trades.entryTime));
+  async getTradesByUser(userId: string, includeHidden: boolean = false): Promise<Trade[]> {
+    const conditions = [eq(trades.userId, userId)];
+    if (!includeHidden) {
+      conditions.push(eq(trades.hidden, false));
+    }
+    return await db.select().from(trades).where(and(...conditions)).orderBy(desc(trades.entryTime));
+  }
+
+  async toggleTradeHidden(id: number, hidden: boolean): Promise<Trade | undefined> {
+    const [trade] = await db.update(trades).set({ hidden }).where(eq(trades.id, id)).returning();
+    return trade || undefined;
   }
 
   async getTrade(id: number): Promise<Trade | undefined> {
@@ -89,7 +99,7 @@ export class DatabaseStorage implements IStorage {
     const allTrades = await db
       .select()
       .from(trades)
-      .where(and(eq(trades.userId, userId), eq(trades.status, "closed")));
+      .where(and(eq(trades.userId, userId), eq(trades.status, "closed"), eq(trades.hidden, false)));
 
     return this.calculateStats(allTrades);
   }
@@ -110,12 +120,7 @@ export class DatabaseStorage implements IStorage {
       };
     }
 
-    const pnlList = allTrades.map(trade => {
-      if (trade.exitPrice === null) return 0;
-      const multiplier = trade.direction === "long" ? 1 : -1;
-      const grossPnL = (trade.exitPrice - trade.entryPrice) * trade.quantity * multiplier;
-      return grossPnL - trade.fees;
-    });
+    const pnlList = allTrades.map(trade => trade.pnl ?? 0);
 
     const wins = pnlList.filter(p => p > 0);
     const losses = pnlList.filter(p => p < 0);
