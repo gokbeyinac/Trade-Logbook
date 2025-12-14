@@ -128,7 +128,8 @@ export async function registerRoutes(
   app.get("/api/trades", isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const trades = await storage.getTradesByUser(userId);
+      const includeHidden = req.query.includeHidden === "true";
+      const trades = await storage.getTradesByUser(userId, includeHidden);
       res.json(trades);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch trades" });
@@ -173,6 +174,29 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
       res.status(500).json({ error: "Failed to create trade" });
+    }
+  });
+
+  // IMPORTANT: Specific routes must come before generic :id routes
+  app.patch("/api/trades/:id/toggle-hidden", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const userId = req.session.userId!;
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid trade ID" });
+      }
+      const existingTrade = await storage.getTrade(id);
+      if (!existingTrade || existingTrade.userId !== userId) {
+        return res.status(404).json({ error: "Trade not found" });
+      }
+      const { hidden } = req.body;
+      if (typeof hidden !== "boolean") {
+        return res.status(400).json({ error: "Hidden must be a boolean" });
+      }
+      const trade = await storage.toggleTradeHidden(id, hidden);
+      res.json(trade);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to toggle trade visibility" });
     }
   });
 
